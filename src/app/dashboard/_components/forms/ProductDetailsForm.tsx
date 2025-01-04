@@ -1,0 +1,105 @@
+"use client";
+
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { productDetailsSchema } from "@/schemas/products";
+import { createProduct } from "@/server/actions/products";
+import { useToast } from "@/hooks/use-toast";
+
+const ProductDetailsForm = () => {
+  const { toast } = useToast();
+  const form = useForm<z.infer<typeof productDetailsSchema>>({
+    resolver: zodResolver(productDetailsSchema),
+    defaultValues: {
+      name: "",
+      url: "",
+      description: "",
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof productDetailsSchema>) => {
+    const data = await createProduct(values);
+
+    if (data?.message) {
+      toast({
+        title: data.error ? "Error" : "Success",
+        description: data.message,
+        variant: data.error ? "destructive" : "default",
+      });
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form
+        className="flex gap-6 flex-col"
+        onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Product Name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Enter your website URL</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormDescription>
+                Include the protocol (http/https) and the full path to the sales
+                page
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Product Description</FormLabel>
+              <FormControl>
+                <Textarea className="min-h-20 resize-none" {...field} />
+              </FormControl>
+              <FormDescription>
+                An optional description to help distinguish your product from
+                other products
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="self-end">
+          <Button disabled={form.formState.isSubmitting}>Save</Button>
+        </div>
+      </form>
+    </Form>
+  );
+};
+
+export default ProductDetailsForm;
