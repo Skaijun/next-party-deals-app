@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import {
   createProduct as createProductDb,
+  updateProduct as updateProductDb,
   deleteProduct as deleteProductDb,
 } from "@/server/db/products";
 import { redirect } from "next/navigation";
@@ -26,6 +27,29 @@ export async function createProduct(
   });
 
   redirect(`/dashboard/products/${id}/edit?tab=countries`);
+}
+
+export async function updateProduct(
+  id: string,
+  unsafeData: z.infer<typeof productDetailsSchema>
+): Promise<{ error: boolean; message: string } | undefined> {
+  const { userId } = await auth();
+  const { success, data } = productDetailsSchema.safeParse(unsafeData);
+  const errorMessage = "There was an error updating your product";
+
+  if (!success || userId == null) {
+    return { error: true, message: errorMessage };
+  }
+
+  const isSuccess = await updateProductDb(data, {
+    id,
+    userId,
+  });
+
+  return {
+    error: !isSuccess,
+    message: !isSuccess ? errorMessage : "Product details updated",
+  };
 }
 
 export async function deleteProduct(id: string) {
