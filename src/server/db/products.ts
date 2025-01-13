@@ -3,6 +3,7 @@ import { ProductCustomizationTable, ProductTable } from "@/drizzle/schema";
 import {
   CACHE_TAGS,
   dbCache,
+  getGlobalTag,
   getIdTag,
   getUserTag,
   revalidateDbCache,
@@ -133,4 +134,71 @@ export async function deleteProduct({
   }
 
   return rowCount > 0; // indicates, if any rows has been deleted
+}
+
+export async function getProductCountryGroups({
+  productId,
+  userId,
+}: {
+  productId: string;
+  userId: string;
+}) {
+  const cacheFn = dbCache(getProductCountryGroupsInternal, {
+    tags: [
+      getIdTag(productId, CACHE_TAGS.products),
+      getGlobalTag(CACHE_TAGS.countries),
+      getGlobalTag(CACHE_TAGS.countryGroups),
+    ],
+  });
+
+  return cacheFn({
+    productId,
+    userId,
+  });
+}
+
+// we want to get all country groups (i.e.: "50%-discout" | "25%-discout" | "10%-discout")
+// then all countries for those specific country groups
+async function getProductCountryGroupsInternal({
+  productId,
+  userId,
+}: {
+  productId: string;
+  userId: string;
+}) {
+  // first make sure user has access to the country groups by checking
+  // product availability for current user
+  const product = await getProduct({ id: productId, userId });
+  if (product == null) return [];
+
+  const data = await db.query.CountryGroupTable.findMany({
+    with: {
+      // individual countries for each country group
+      countries: {
+        columns: {
+          name: true,
+          code: true,
+        },
+      },
+      // below get the discount the User has associated with that country
+      // if they have one
+      countryGroupDiscounts: {
+        columns: {
+          coupon: true,
+          discountPercentage: true,
+        },
+        where: ({ productId: id }, { eq }) => eq(id, productId),
+      },
+    },
+  });
+
+  return data.map((countryGroup) => {
+    return {
+      id: countryGroup.id,
+      name: countryGroup.name,
+      recommendedDiscountPercentage: countryGroup.recommendedDiscountPercentage,
+      countries: countryGroup.countries,
+      discount: countryGroup.countryGroupDiscounts.at(0),
+    };
+  });
 }
