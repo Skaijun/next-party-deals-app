@@ -1,4 +1,5 @@
 import CountryDiscountForm from "@/app/dashboard/_components/forms/CountryDiscountForm";
+import { ProductCustomizationForm } from "@/app/dashboard/_components/forms/ProductCustomizationForm";
 import ProductDetailsForm from "@/app/dashboard/_components/forms/ProductDetailsForm";
 import PageWithBackButton from "@/app/dashboard/_components/PageWithBackButton";
 import {
@@ -10,7 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getProduct, getProductCountryGroups } from "@/server/db/products";
+import { getProduct, getProductCountryGroups, getProductCustomization } from "@/server/db/products";
+import { canCustomizeBanner, canRemoveBranding } from "@/server/permissions";
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
@@ -46,7 +48,7 @@ const EditProductPage = async ({
         <TabsContent value="country">
           <CountryTab productId={productId} userId={userId} />
         </TabsContent>
-        <TabsContent value="customization">Customization</TabsContent>
+        <TabsContent value="customization"><CustomizationsTab productId={productId} userId={userId} /></TabsContent>
       </Tabs>
     </PageWithBackButton>
   );
@@ -105,4 +107,33 @@ async function CountryTab({
       </CardContent>
     </Card>
   );
+}
+
+async function CustomizationsTab({
+  productId,
+  userId
+}: {
+  productId: string;
+  userId: string;
+}) {
+  const customization = await getProductCustomization({
+    productId,
+    userId,
+  });
+
+  if (customization == null) return notFound();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl">Banner Customization</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ProductCustomizationForm
+          canRemoveBranding={await canRemoveBranding(userId)}
+          canCustomizeBanner={await canCustomizeBanner(userId)}
+          customization={customization}
+        />
+      </CardContent>
+    </Card>)
 }

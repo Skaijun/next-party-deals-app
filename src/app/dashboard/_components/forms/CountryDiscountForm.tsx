@@ -15,6 +15,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { updateCountryDiscounts } from "@/server/actions/products";
 
 const CountryDiscountForm = ({
   productId,
@@ -35,23 +38,12 @@ const CountryDiscountForm = ({
     };
   }[];
 }) => {
-  const countryGroups1 = [
-    {
-      countries: [
-        { code: "US", name: "United States" },
-        { code: "IN", name: "India" },
-      ],
-      id: "sdfdsfsd",
-      name: "Group 1",
-      recommendedDiscountPercentage: 0.1,
-      discount: { coupon: "Hi", discountPercentage: 0.2 },
-    },
-  ];
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof productCountryDiscountSchema>>({
     resolver: zodResolver(productCountryDiscountSchema),
     defaultValues: {
-      groups: countryGroups1.map((group) => {
+      groups: countryGroups.map((group) => {
         const groupDiscount =
           group.discount?.discountPercentage ??
           group.recommendedDiscountPercentage;
@@ -65,8 +57,16 @@ const CountryDiscountForm = ({
     },
   });
 
-  const onSubmit = (values: z.infer<typeof productCountryDiscountSchema>) => {
-    console.log(values);
+  const onSubmit = async (values: z.infer<typeof productCountryDiscountSchema>) => {
+    const data = await updateCountryDiscounts(productId, values);
+
+    if (data.message) {
+      toast({
+        title: data.error ? "Error" : "Success",
+        description: data.message,
+        variant: data.error ? "destructive" : "default",
+      })
+    }
   };
 
   return (
@@ -74,7 +74,7 @@ const CountryDiscountForm = ({
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex gap-6 flex-col">
-        {countryGroups1.map((group, index) => (
+        {countryGroups.map((group, index) => (
           <Card key={group.id}>
             <CardContent className="pt-6 flex gap-16 items-center">
               <div>
@@ -114,7 +114,7 @@ const CountryDiscountForm = ({
                             {...field}
                             value={field.value ?? ""}
                             onChange={(e) =>
-                              field.onChange(e.target.valueAsNumber)
+                              e.target.value ? field.onChange(e.target.valueAsNumber) : field.onChange(undefined)
                             }
                             min="0"
                             max="100"
@@ -146,6 +146,10 @@ const CountryDiscountForm = ({
             </CardContent>
           </Card>
         ))}
+
+        <div className="self-end">
+          <Button disabled={form.formState.isSubmitting} type="submit">Save</Button>
+        </div>
       </form>
     </Form>
   );

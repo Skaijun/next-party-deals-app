@@ -1,22 +1,30 @@
 "use server";
 
-import { productDetailsSchema } from "@/schemas/products";
+import {
+  productCountryDiscountSchema,
+  productCustomizationSchema,
+  productDetailsSchema,
+} from "@/schemas/products";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import {
   createProduct as createProductDb,
   updateProduct as updateProductDb,
   deleteProduct as deleteProductDb,
+  updateCountryDiscounts as updateCountryDiscountsDb,
+  updateProductCustomization as updateProductCustomizationDb,
 } from "@/server/db/products";
 import { redirect } from "next/navigation";
+import { canCreateProduct, canCustomizeBanner } from "../permissions";
 
 export async function createProduct(
   unsafeData: z.infer<typeof productDetailsSchema>
 ): Promise<{ error: boolean; message: string } | undefined> {
   const { userId } = await auth();
   const { success, data } = productDetailsSchema.safeParse(unsafeData);
+  const canCreate = await canCreateProduct(userId);
 
-  if (!success || userId == null) {
+  if (!success || userId == null || !canCreate) {
     return { error: true, message: "There was an error creating your product" };
   }
 
@@ -69,4 +77,69 @@ export async function deleteProduct(id: string) {
     error: !isSuccess,
     message: isSuccess ? "Successfully deleted your product" : errMsg,
   };
+}
+
+export async function updateCountryDiscounts(
+  productId: string,
+  unsafeData: z.infer<typeof productCountryDiscountSchema>
+) {
+  const { userId } = await auth();
+  const { success, data } = productCountryDiscountSchema.safeParse(unsafeData);
+
+  if (!success || userId == null) {
+    return {
+      error: true,
+      message: "There was an error saving your country discounts",
+    };
+  }
+
+  const insert: {
+    countryGroupId: string;
+    productId: string;
+    coupon: string;
+    discountPercentage: number;
+  }[] = [];
+  const deleteIds: { countryGroupId: string }[] = [];
+
+  data.groups.forEach((group) => {
+    if (
+      group.coupon != null &&
+      group.coupon.length > 0 &&
+      group.discountPercentage != null &&
+      group.discountPercentage > 0
+    ) {
+      insert.push({
+        countryGroupId: group.countryGroupId,
+        productId,
+        coupon: group.coupon,
+        discountPercentage: group.discountPercentage / 100,
+      });
+    } else {
+      deleteIds.push({ countryGroupId: group.countryGroupId });
+    }
+  });
+
+  await updateCountryDiscountsDb(deleteIds, insert, { productId, userId });
+
+  return { error: false, message: "Country discounts saved" };
+}
+
+export async function updateProductCustomization(
+  id: string,
+  unsafeData: z.infer<typeof productCustomizationSchema>
+) {
+  const { userId } = await auth();
+  const { success, data } = productCustomizationSchema.safeParse(unsafeData);
+  const canCustomize = await canCustomizeBanner(userId);
+
+  if (!success || userId == null || !canCustomize) {
+    return {
+      error: true,
+      message: "There was an error updating your banner",
+    };
+  }
+
+  await updateProductCustomizationDb(data, { productId: id, userId });
+
+  return { error: false, message: "Banner  updated" };
 }
