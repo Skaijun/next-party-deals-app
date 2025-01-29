@@ -33,9 +33,37 @@ export async function POST(request: NextRequest) {
   return new Response(null, { status: 200 });
 }
 
-function handleDelete(subscription: Stripe.Subscription) {}
+async function handleDelete(subscription: Stripe.Subscription) {
+  const customer = subscription.customer;
+  const customerId = typeof customer === "string" ? customer : customer.id;
 
-function handleUpdate(subscription: Stripe.Subscription) {}
+  return await updateUserSubscription(
+    eq(UserSubscriptionTable.stripeCustomerId, customerId),
+    {
+      stripeCustomerId: customerId,
+      tier: subscriptionTiers.Free.name,
+      stripeSubscriptionId: null,
+      stripeSubscriptionItemId: null,
+    }
+  );
+}
+
+async function handleUpdate(subscription: Stripe.Subscription) {
+  const tier = getTierByPriceId(subscription.items.data[0].price.id);
+  const customer = subscription.customer;
+  const customerId = typeof customer === "string" ? customer : customer.id;
+
+  if (tier == null) {
+    return new Response(null, { status: 500 });
+  }
+
+  return await updateUserSubscription(
+    eq(UserSubscriptionTable.stripeCustomerId, customerId),
+    {
+      tier: tier.name,
+    }
+  );
+}
 
 async function handleCreate(subscription: Stripe.Subscription) {
   const tier = getTierByPriceId(subscription.items.data[0].price.id);
