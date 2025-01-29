@@ -34,7 +34,10 @@ import { BatchItem } from "drizzle-orm/batch";
 // };
 // =============================================
 
-export function getProducts(userId: string, { limit }: { limit?: number }) {
+export function getProducts(
+  userId: string,
+  { limit }: { limit?: number } = {}
+) {
   const cacheFn = dbCache(getProductsInternal, {
     tags: [getUserTag(userId, CACHE_TAGS.products)],
   });

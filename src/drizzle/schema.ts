@@ -172,7 +172,10 @@ export const countryGroupDiscountRelations = relations(
   })
 );
 
-export const TierEnum = pgEnum("tier", Object.keys(subscriptionTiers) as [TierNames]);
+export const TierEnum = pgEnum(
+  "tier",
+  Object.keys(subscriptionTiers) as [TierNames]
+);
 
 export const UserSubscriptionTable = pgTable(
   "user_subscriptions",

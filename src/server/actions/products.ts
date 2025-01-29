@@ -9,8 +9,8 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import {
   createProduct as createProductDb,
-  updateProduct as updateProductDb,
   deleteProduct as deleteProductDb,
+  updateProduct as updateProductDb,
   updateCountryDiscounts as updateCountryDiscountsDb,
   updateProductCustomization as updateProductCustomizationDb,
 } from "@/server/db/products";
@@ -49,38 +49,32 @@ export async function updateProduct(
     return { error: true, message: errorMessage };
   }
 
-  const isSuccess = await updateProductDb(data, {
-    id,
-    userId,
-  });
+  const isSuccess = await updateProductDb(data, { id, userId });
 
   return {
     error: !isSuccess,
-    message: !isSuccess ? errorMessage : "Product details updated",
+    message: isSuccess ? "Product details updated" : errorMessage,
   };
 }
 
 export async function deleteProduct(id: string) {
   const { userId } = await auth();
-  const errMsg = "There was an error deleting your product";
+  const errorMessage = "There was an error deleting your product";
 
   if (userId == null) {
-    return {
-      error: true,
-      message: errMsg,
-    };
+    return { error: true, message: errorMessage };
   }
 
   const isSuccess = await deleteProductDb({ id, userId });
 
   return {
     error: !isSuccess,
-    message: isSuccess ? "Successfully deleted your product" : errMsg,
+    message: isSuccess ? "Successfully deleted your product" : errorMessage,
   };
 }
 
 export async function updateCountryDiscounts(
-  productId: string,
+  id: string,
   unsafeData: z.infer<typeof productCountryDiscountSchema>
 ) {
   const { userId } = await auth();
@@ -110,16 +104,16 @@ export async function updateCountryDiscounts(
     ) {
       insert.push({
         countryGroupId: group.countryGroupId,
-        productId,
         coupon: group.coupon,
         discountPercentage: group.discountPercentage / 100,
+        productId: id,
       });
     } else {
       deleteIds.push({ countryGroupId: group.countryGroupId });
     }
   });
 
-  await updateCountryDiscountsDb(deleteIds, insert, { productId, userId });
+  await updateCountryDiscountsDb(deleteIds, insert, { productId: id, userId });
 
   return { error: false, message: "Country discounts saved" };
 }
@@ -141,5 +135,5 @@ export async function updateProductCustomization(
 
   await updateProductCustomizationDb(data, { productId: id, userId });
 
-  return { error: false, message: "Banner  updated" };
+  return { error: false, message: "Banner updated" };
 }
