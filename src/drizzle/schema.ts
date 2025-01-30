@@ -15,7 +15,6 @@ import {
 const createdAt = timestamp("created_at", { withTimezone: true })
   .notNull()
   .defaultNow();
-
 const updatedAt = timestamp("updated_at", { withTimezone: true })
   .notNull()
   .defaultNow()
@@ -28,7 +27,7 @@ export const ProductTable = pgTable(
     clerkUserId: text("clerk_user_id").notNull(),
     name: text("name").notNull(),
     url: text("url").notNull(),
-    description: text("description").notNull(),
+    description: text("description"),
     createdAt,
     updatedAt,
   },
@@ -42,6 +41,7 @@ export const ProductTable = pgTable(
 export const productRelations = relations(ProductTable, ({ one, many }) => ({
   productCustomization: one(ProductCustomizationTable),
   productViews: many(ProductViewTable),
+  countryGroupDiscounts: many(CountryGroupDiscountTable),
 }));
 
 export const ProductCustomizationTable = pgTable("product_customizations", {
@@ -107,14 +107,12 @@ export const CountryTable = pgTable("countries", {
   code: text("code").notNull().unique(),
   countryGroupId: uuid("country_group_id")
     .notNull()
-    .references(() => CountryGroupTable.id, {
-      onDelete: "cascade",
-    }),
+    .references(() => CountryGroupTable.id, { onDelete: "cascade" }),
   createdAt,
   updatedAt,
 });
 
-export const countryRelations = relations(CountryTable, ({ one, many }) => ({
+export const countryRelations = relations(CountryTable, ({ many, one }) => ({
   countryGroups: one(CountryGroupTable, {
     fields: [CountryTable.countryGroupId],
     references: [CountryGroupTable.id],
@@ -134,11 +132,11 @@ export const countryGroupRelations = relations(
   CountryGroupTable,
   ({ many }) => ({
     countries: many(CountryTable),
-    countryGroupDiscounts: many(CountryGroupDiscountsTable),
+    countryGroupDiscounts: many(CountryGroupDiscountTable),
   })
 );
 
-export const CountryGroupDiscountsTable = pgTable(
+export const CountryGroupDiscountTable = pgTable(
   "country_group_discounts",
   {
     countryGroupId: uuid("country_group_id")
@@ -155,19 +153,18 @@ export const CountryGroupDiscountsTable = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.countryGroupId, table.productId] }),
   })
-  // (table) => [primaryKey({ columns: [table.countryGroupId, table.productId] })]
 );
 
 export const countryGroupDiscountRelations = relations(
-  CountryGroupDiscountsTable,
+  CountryGroupDiscountTable,
   ({ one }) => ({
-    countryGroup: one(CountryGroupTable, {
-      fields: [CountryGroupDiscountsTable.countryGroupId],
-      references: [CountryGroupTable.id],
-    }),
     product: one(ProductTable, {
-      fields: [CountryGroupDiscountsTable.productId],
+      fields: [CountryGroupDiscountTable.productId],
       references: [ProductTable.id],
+    }),
+    countryGroup: one(CountryGroupTable, {
+      fields: [CountryGroupDiscountTable.countryGroupId],
+      references: [CountryGroupTable.id],
     }),
   })
 );
@@ -182,8 +179,8 @@ export const UserSubscriptionTable = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     clerkUserId: text("clerk_user_id").notNull().unique(),
-    stripeSubscriptionId: text("stripe_subscription_id"),
     stripeSubscriptionItemId: text("stripe_subscription_item_id"),
+    stripeSubscriptionId: text("stripe_subscription_id"),
     stripeCustomerId: text("stripe_customer_id"),
     tier: TierEnum("tier").notNull(),
     createdAt,
