@@ -29,7 +29,7 @@ export function clearFullCache() {
   revalidateTag("*");
 }
 
-export function dbCache<T extends (...args: any[]) => Promise<any>>(
+export function dbCache<T extends (...args: any[]) => Promise<any>>( // eslint-disable-line
   cb: Parameters<typeof unstable_cache<T>>[0],
   { tags }: { tags: ValidTags[] }
 ) {

@@ -52,6 +52,7 @@ export async function GET(
 }
 
 function getCountryCode(request: NextRequest) {
+  console.log(request);
   // if (request.geo?.country != null) return request.geo.country;
   if (process.env.NODE_ENV === "development") {
     return env.TEST_COUNTRY_CODE;

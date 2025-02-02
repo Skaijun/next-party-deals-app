@@ -100,6 +100,7 @@ export async function createProduct(data: typeof ProductTable.$inferInsert) {
         target: ProductCustomizationTable.productId,
       });
   } catch (error) {
+    console.log(error);
     await db.delete(ProductTable).where(eq(ProductTable.id, newProduct.id));
   }
 
