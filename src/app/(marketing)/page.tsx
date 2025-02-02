@@ -165,15 +165,26 @@ export default HomePage;
 function PricingCard({
   name,
   priceInCents,
-  maxNumberOfProducts,
   maxNumberOfVisits,
+  maxNumberOfProducts,
+  canRemoveBranding,
   canAccessAnalytics,
   canCustomizeBanner,
-  canRemoveBranding,
 }: (typeof subscriptionTiersInOrder)[number]) {
-  const isMostPopular = name === "Standard";
+  const isMostPopular = name === "Standard"
+
   return (
-    <Card>
+    <Card
+      className={cn(
+        "relative shadow-none rounded-3xl overflow-hidden",
+        isMostPopular ? "border-accent border-2" : "border-none"
+      )}
+    >
+      {isMostPopular && (
+        <div className="bg-accent text-accent-foreground absolute py-1 px-10 -right-8 top-24 rotate-45 origin-top-right">
+          Most popular
+        </div>
+      )}
       <CardHeader>
         <div className="text-accent font-semibold mb-8">{name}</div>
         <CardTitle className="text-xl font-bold">
@@ -187,7 +198,8 @@ function PricingCard({
         <SignUpButton>
           <Button
             className="text-lg w-full rounded-lg"
-            variant={isMostPopular ? "accent" : "default"}>
+            variant={isMostPopular ? "accent" : "default"}
+          >
             Get Started
           </Button>
         </SignUpButton>
@@ -197,13 +209,13 @@ function PricingCard({
           {maxNumberOfProducts}{" "}
           {maxNumberOfProducts === 1 ? "product" : "products"}
         </Feature>
-        <Feature>zZzZ Discounts</Feature>
-        {canAccessAnalytics && <Feature>Advanced Analytics</Feature>}
-        {canRemoveBranding && <Feature>Remove Easy zZzZ Branding</Feature>}
-        {canCustomizeBanner && <Feature>Banner Customization</Feature>}
+        <Feature>PPP discounts</Feature>
+        {canAccessAnalytics && <Feature>Advanced analytics</Feature>}
+        {canRemoveBranding && <Feature>Remove Easy PPP branding</Feature>}
+        {canCustomizeBanner && <Feature>Banner customization</Feature>}
       </CardFooter>
     </Card>
-  );
+  )
 }
 
 function Feature({

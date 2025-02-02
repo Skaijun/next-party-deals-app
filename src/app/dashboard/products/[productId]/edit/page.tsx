@@ -39,7 +39,7 @@ const EditProductPage = async ({
       <Tabs defaultValue={tab ?? "details"}>
         <TabsList className="bg-background/60">
           <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="country">Country</TabsTrigger>
+          <TabsTrigger value="countries">Country</TabsTrigger>
           <TabsTrigger value="customization">Customization</TabsTrigger>
         </TabsList>
         <TabsContent value="details">

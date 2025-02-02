@@ -1,24 +1,34 @@
-import { auth } from "@clerk/nextjs/server";
-import { getProducts } from "@/server/db/products";
-import NoProducts from "./_components/NoProducts";
-import Link from "next/link";
-import { ArrowRightIcon, PlusIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ProductGrid } from "./_components/ProductGrid";
+import { getProducts } from "@/server/db/products"
+import { auth } from "@clerk/nextjs/server"
+import Link from "next/link"
+import { ArrowRightIcon, PlusIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ProductGrid } from "./_components/ProductGrid"
+import { canAccessAnalytics } from "@/server/permissions"
+import {
+  CHART_INTERVALS,
+  getViewsByDayChartData,
+} from "@/server/db/productViews"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ViewsByDayChart } from "./_components/charts/ViewsByDayChart"
+import NoProducts from "./_components/NoProducts"
+import HasPermission from "@/components/HasPermission"
 
-const DashboardPage = async () => {
-  const { userId, redirectToSignIn } = await auth();
-  if (userId == null) return redirectToSignIn();
+export default async function DashboardPage() {
+  const { userId, redirectToSignIn } = await auth()
+  if (userId == null) return redirectToSignIn()
 
-  const products = await getProducts(userId, { limit: 6 });
-  if (products.length === 0) return <NoProducts />;
+  const products = await getProducts(userId, { limit: 6 })
+
+  if (products.length === 0) return <NoProducts />
 
   return (
     <>
       <h2 className="mb-6 text-3xl font-semibold flex justify-between">
         <Link
           className="group flex gap-2 items-center hover:underline"
-          href="/dashboard/products">
+          href="/dashboard/products"
+        >
           Products
           <ArrowRightIcon className="group-hover:translate-x-1 transition-transform" />
         </Link>
@@ -30,8 +40,37 @@ const DashboardPage = async () => {
         </Button>
       </h2>
       <ProductGrid products={products} />
+      <h2 className="mb-6 text-3xl font-semibold flex justify-between mt-12">
+        <Link
+          href="/dashboard/analytics"
+          className="flex gap-2 items-center hover:underline group"
+        >
+          Analytics
+          <ArrowRightIcon className="group-hover:translate-x-1 transition-transform" />
+        </Link>
+      </h2>
+      <HasPermission permission={canAccessAnalytics} renderFallback>
+        <AnalyticsChart userId={userId} />
+      </HasPermission>
     </>
-  );
-};
+  )
+}
 
-export default DashboardPage;
+async function AnalyticsChart({ userId }: { userId: string }) {
+  const chartData = await getViewsByDayChartData({
+    userId,
+    interval: CHART_INTERVALS.last30Days,
+    timezone: "UTC",
+  })
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Views by Day</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ViewsByDayChart chartData={chartData} />
+      </CardContent>
+    </Card>
+  )
+}

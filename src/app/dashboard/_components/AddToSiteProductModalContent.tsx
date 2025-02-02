@@ -18,7 +18,7 @@ const AddToSiteProductModalContent = ({ id }: { id: string }) => {
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const Icon = getCopyIcon(copyState);
 
-  const code = `<script scr="${env.NEXT_PUBLIC_SERVER_URL}/api/products/${id}/banner"></script>`;
+  const code = `<script src="${env.NEXT_PUBLIC_SERVER_URL}/api/products/${id}/banner"></script>`;
 
   function handleClipboardClick() {
     navigator.clipboard

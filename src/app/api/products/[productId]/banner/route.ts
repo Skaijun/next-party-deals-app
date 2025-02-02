@@ -8,13 +8,15 @@ import { notFound } from "next/navigation";
 import { NextRequest } from "next/server";
 import { createElement } from "react";
 
+export const runtime = "edge";
+
 export async function GET(
   request: NextRequest,
-  { params: { productId } }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) {
-  const headersMap = headers();
-  const requestingUrl =
-    (await headersMap).get("referer") || (await headersMap).get("origin");
+  const { productId } = await params;
+  const headersMap = await headers();
+  const requestingUrl = headersMap.get("referer") || headersMap.get("origin");
   if (requestingUrl == null) return notFound();
   const countryCode = getCountryCode(request);
   if (countryCode == null) return notFound();
@@ -45,16 +47,12 @@ export async function GET(
       discount,
       await canRemoveBranding(product.clerkUserId)
     ),
-    {
-      headers: {
-        "content-type": "text/javascript",
-      },
-    }
+    { headers: { "content-type": "text/javascript" } }
   );
 }
 
 function getCountryCode(request: NextRequest) {
-  //   if (request.geo?.country != null) return request.geo.country;
+  // if (request.geo?.country != null) return request.geo.country;
   if (process.env.NODE_ENV === "development") {
     return env.TEST_COUNTRY_CODE;
   }
@@ -78,21 +76,21 @@ async function getJavaScript(
 ) {
   const { renderToStaticMarkup } = await import("react-dom/server");
   return `
-      const banner = document.createElement("div");
-      banner.innerHTML = '${renderToStaticMarkup(
-        createElement(Banner, {
-          message: product.customization.locationMessage,
-          mappings: {
-            country: country.name,
-            coupon: discount.coupon,
-            discount: (discount.percentage * 100).toString(),
-          },
-          customization: product.customization,
-          canRemoveBranding,
-        })
-      )}';
-      document.querySelector("${
-        product.customization.bannerContainer
-      }").prepend(...banner.children);
-    `.replace(/(\r\n|\n|\r)/g, "");
+    const banner = document.createElement("div");
+    banner.innerHTML = '${renderToStaticMarkup(
+      createElement(Banner, {
+        message: product.customization.locationMessage,
+        mappings: {
+          country: country.name,
+          coupon: discount.coupon,
+          discount: (discount.percentage * 100).toString(),
+        },
+        customization: product.customization,
+        canRemoveBranding,
+      })
+    )}';
+    document.querySelector("${
+      product.customization.bannerContainer
+    }").prepend(...banner.children);
+  `.replace(/(\r\n|\n|\r)/g, "");
 }
